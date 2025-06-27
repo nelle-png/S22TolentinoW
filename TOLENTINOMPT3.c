@@ -108,6 +108,114 @@ void addWordsManual(gameData wordlist[], int* entryCount) {
 	}
 }
 
+// VOID ADDFROMFILE
+/// displays all words in struct wordlist[] and gives the user the option to select an index and edit the word in that index
+void editWords(gameData wordlist[], int* entryCount){
+	int editIndex;
+	int editSelect;
+	int i;
+	int validInput = 0;
+	char newWord[LENGTH];
+	char newClue[LENGTH];
+	
+	if(*entryCount > 0)
+	{
+	
+		printf("INDEX - WORD - CLUE\n");
+		
+		for(i = 0; i < *entryCount; i++){
+			printf("%d - %s - %s\n", i, wordlist[i].strWord, wordlist[i].strClue);
+		}
+		printf("\n");
+		
+		validInput = 0;
+		while(!validInput){
+			printf("Do you wish to edit a WORD [0] or a CLUE [1]?\n");
+			scanf("%d", &editSelect);
+			
+			if(editSelect == 1 || editSelect == 0){
+				validInput = 1;
+			}
+			
+			scanf("%*[^\n]"); 
+			scanf("%*c");
+		}
+		
+		validInput = 0;
+		while(!validInput){
+			printf("Enter the index of the entry you wish to edit (0 - %d): ", *entryCount-1);
+			scanf("%d", &editIndex);
+			
+			if(editIndex >= 0 && editIndex < *entryCount){
+				validInput = 1;
+			}
+			
+			scanf("%*[^\n]"); 
+			scanf("%*c");
+		}
+		
+		if(editSelect == 0){	
+			printf("Selected word: %s\n", wordlist[editIndex].strWord);
+			printf("New word: ");
+			scanf(" %[^\n]", newWord);
+			if(newWord[0]){
+				strcpy(wordlist[editIndex].strWord, newWord);
+			}
+		} else if(editSelect == 1){
+			printf("Selected clue: %s\n", wordlist[editIndex].strClue);
+			printf("New clue: ");
+			scanf(" %[^\n]", newClue);
+			
+			if(newClue[0]){
+				strcpy(wordlist[editIndex].strClue, newClue);
+			}
+		} else {
+			printf("Invalid entry. Please enter either 0 for WORDS and 1 for CLUES");
+		}
+		printf("Updated entry %d: %s - %s\n", editIndex, 
+		wordlist[editIndex].strWord, wordlist[editIndex].strClue);
+	} else {
+		printf("No available entries for editing :(\n");
+	}
+	
+}
+
+// delete function
+void deleteWords(gameData wordlist[], int *entryCount){
+    int index;
+    int i;
+
+    if (*entryCount == 0) {
+        printf("No entries to delete.\n");
+    } else {
+       printf("INDEX - WORD - CLUE\n");
+		
+		for(i = 0; i < *entryCount; i++){
+			printf("%d - %s - %s\n", i, wordlist[i].strWord, wordlist[i].strClue);
+		}
+		printf("\n");
+        
+        printf("Enter the number of the entry to delete (1-%d): ", *entryCount);
+        scanf("%d", &index);
+
+        if (index >= 1 && index <= *entryCount) {
+            index--; // Convert to zero-based index
+            i = index;
+
+            // Shift only if it's not the last entry
+            while (i < *entryCount - 1) {
+                wordlist[i] = wordlist[i + 1];
+                i++;
+            }
+
+            (*entryCount)--; // Reduce the total count
+            printf("Selected entry was deleted successfully.\n");
+        } else {
+            printf("Invalid entry number.\n");
+        }
+    }
+}
+
 // this will check if player has previous saved data
 void gameCheck(playerData *player) {
 	int nSaves = player->nSavedGames;
@@ -155,91 +263,94 @@ char randomLetter(char *word) {
 	return c;
 }
 
-// main play function yey
+// main game function yeyy
 void playTime(playerData *player, gameData wordlist[], int* entryCount) {
-    float points = 0;
-    int nLevelIn = 0;
-    int len = 0;
-    int found = 0;
-    int playedRounds = 0;
+    gameData temp; // will be used for keeping track of words used
+	float points = 0;
+    int currentWord;
+    int wordLength;
+    int foundWord;
     char strAnswer[LENGTH];
     char cLetter;
+	int continueSearch;
+	int i;
 
     printf("Please input player username: ");
-    scanf(" %[^\n]", player->strName);
+    scanf(" %49[^\n]", player->strName);
 
     gameCheck(player);
 
-    // Check if there are words available
     if (*entryCount > 0) {
-        while (player->nLives > 0 && playedRounds < *entryCount) {
-            found = 0;
-            nLevelIn = 0; // Reset search from beginning each time
-
-            // Find appropriate word based on level progression
-            while (!found && nLevelIn < *entryCount) {
-                len = strlen(wordlist[nLevelIn].strWord);
-
-                // Simplified level progression
-                if ((player->nLevel <= 3 && len <= 4) ||
-                    (player->nLevel > 3 && player->nLevel <= 5 && len <= 8) ||
-                    (player->nLevel > 5)) {
-                    found = 1;
-                } else {
-                    nLevelIn++;
+        while (player->nLives > 0) {
+            foundWord = 0;
+			continueSearch = 1;
+			
+            for(i = 0; i < *entryCount && continueSearch; i++) {
+                wordLength = strlen(wordlist[i].strWord);
+                
+                if(player->nLevel <= 3 && wordLength <= 4) {
+                    currentWord = i;
+                    foundWord = 1;
+                    points = 2.5;
+					continueSearch = 0;
+                } else if (player->nLevel <= 5 && wordLength <= 8) {  // Fixed condition
+                    currentWord = i;
+                    foundWord = 1;
+                    points = 4.0;
+					continueSearch = 0;
+                } else if(player->nLevel >= 6 && wordLength >= 9) {  // Fixed condition
+                    currentWord = i;
+                    foundWord = 1;
+                    points = 7.0;
+					continueSearch = 0;
                 }
             }
 
-            if (found) {
-                cLetter = randomLetter(wordlist[nLevelIn].strWord);
+            if (foundWord) {
+                cLetter = randomLetter(wordlist[currentWord].strWord); 
 
                 printf("\nLEVEL %d\n", player->nLevel);
-                printf("CLUE: %s\n", wordlist[nLevelIn].strClue);
+                printf("WORD LENGTH: %d\n", wordLength); 
+                printf("CLUE: %s\n", wordlist[currentWord].strClue); 
                 printf("LETTER: %c\n", cLetter);
 
                 printf("Enter your guess: ");
-                scanf(" %[^\n]", strAnswer);
-                
-                playedRounds++;
-
-                if (strcmp(wordlist[nLevelIn].strWord, strAnswer) == 0) {
+                scanf(" %49[^\n]", strAnswer);
+				
+                if (strcmp(wordlist[currentWord].strWord, strAnswer) == 0) { 
                     printf("Correct!\n");
-
-                    // Calculate points based on level
-                    if (player->nLevel <= 3) {
-                        points = 2.5;
-                    } else if (player->nLevel <= 5) {
-                        points = 4.0;
-                    } else {
-                        points = 7.0;
-                    }
-
-                    player->nScore += points;
+                    (player->nScore) += points; 
                     player->nLevel++;
+                    
+					// indicates used word
+					temp = wordlist[currentWord];
+					wordlist[currentWord] = wordlist[*entryCount-1];
+                    wordlist[*entryCount-1] = temp;
+                    (*entryCount)--;
+					
                 } else {
                     colorRed();
-                    printf("Incorrect. The correct word was: %s\n", wordlist[nLevelIn].strWord);
+                    printf("Incorrect. The correct word was: %s\n", wordlist[currentWord].strWord);
                     resetColor();
                     player->nLives--;
                 }
 
-                printf("Score: %d | Lives: %d\n", player->nScore, player->nLives);
-                nLevelIn++; // Move to next word for next round
+                printf("Score: %.1f | Lives: %d\n", player->nScore, player->nLives);  // Fixed: use %.1f for float
+            } else {
+                colorRed();
+                printf("No words available for this level!\n");
+                resetColor();
+                player->nLives--;  // Deduct life when no word found
             }
         }
 
-        if (playedRounds > 0) {
-            if (player->nLives == 0) {
-                colorRed();
-                printf("\nGAME OVER :(\n");
-                resetColor();
-            } else {
-                colorGreen();
-                printf("\nCONGRATULATIONS! :3\n");
-                resetColor();
-            }
-        } else {
-            printf("No suitable words found for gameplay!\n");
+        if (player->nLives == 0) {
+            colorYellow();
+            printf("\nGAME OVER :(\n");
+            resetColor();
+            colorGreen();
+            printf("Your total score was %.1f!\n", player->nScore);
+            resetColor();
         }
     } else {
         printf("No words available to play! Please add words first.\n");
@@ -269,9 +380,9 @@ void adminMenu(gameData wordlist[], int* entryCount) {
 			colorYellow();
 			printf("|              [2] ADD WORDS FROM FILE       |\n");
 			colorCyan();
-			printf("|              [3] RESET PLAYER DATABASE     |\n");
+			printf("|              [3] EDIT WORDS                |\n");
 			colorCyan();
-			printf("|              [4] SAVED GAMES               |\n");
+			printf("|              [4] DELETE WORDS              |\n");
 			colorCyan();
 			printf("|              [5] EXIT                      |\n");
 			resetColor();
@@ -279,13 +390,24 @@ void adminMenu(gameData wordlist[], int* entryCount) {
 
 			printf("Enter choice: ");
 			scanf("%d", &nChoice);
-
-			if (nChoice == 1) {
-				addWordsManual(wordlist, entryCount);
-			} else if (nChoice == 2 || nChoice == 3 || nChoice == 4) {
-				quitGame(); // placeholder
-			} else if (nChoice != 5) {
-				printf("Invalid choice. Try again.\n");
+			
+			switch(nChoice){
+				case 1: 
+					addWordsManual(wordlist, entryCount);
+					break;
+				case 2: 
+					quitGame();
+					break;
+				case 3: 
+					editWords(wordlist, entryCount);
+					break;
+				case 4: 
+					deleteWords(wordlist, entryCount);
+					break;
+				case 5:
+					quitGame();
+					break;
+				default: printf("Invalid choice. Try again.\n");
 			}
 		} while (nChoice != 5);
 	} else {
