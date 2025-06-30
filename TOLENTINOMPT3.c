@@ -1,15 +1,15 @@
 ///// VERY VERY INCOMPLETE
 /*
-	NEEDED AS OF JUNE 26, 2025 11:30PM:
-	- Edit words
-	- Delete words
-	- Fix playtime (wont run properly)
+	NEEDED AS OF JUNE 30, 2025 5:50PM:
+	- Figure out how to save new game without mere appending + completely rewriting saved
+	- Saving games and scores into saved.txt and scores.txt respectively
+	- Add words through file processing 
 
 */
 
 #include<stdio.h>
 #include<string.h>
-#include<stdlib.h> // purely for color coding
+#include<stdlib.h> // purely for rand function, was also used in term 1 space invaders mp
 
 #define LENGTH 200
 #define PASSWORD "mygame"
@@ -21,6 +21,7 @@ FUNCTION PROTOTYPES:
 void addWordsManual(gameData wordlist[], int* entryCount)
 void editWords(gameData wordlist[], int* entryCount)
 void deleteWords(gameData wordlist[], int* entryCount)
+void playTime(playerData *player, gameData wordlist[], int* entryCount) {
 void adminMenu(gameData wordlist[], int* entryCount)
 void mainmenu(gameData wordlist[], int* entryCount)
 void quitGame()
@@ -49,21 +50,21 @@ void resetColor() { printf("\033[0m"); }
 struct gameDataTag {
 	char strWord[LENGTH];
 	char strClue[LENGTH];
-	float nScore;
 };
 
 struct playerDataTag {
-	char strName[LENGTH];
-	int nLevel;      // Default level count starts at 1
-	int nLives;      // Default lives start as 3 
-	int nScore;      // Default score starts at 0
+	char strName[LENGTH]; // For player username
+	int nLevel;      // Default level count 
+	int nLives;      // Default lives
+	float nScore;      // Default score 
+	int nAnswered; // Default questions answered 
 	int nSavedGames; // New field to track saves
 };
 
 typedef struct gameDataTag gameData;
 typedef struct playerDataTag playerData;
 
-// checks for duplicate words [NEEDS CLARIFICATION if clues must be checked as well]
+// checks for duplicate words
 int isDuplicate(gameData wordlist[], int n, char word[]) {
 	int nDuplicate = 0;
 	int i;
@@ -109,6 +110,7 @@ void addWordsManual(gameData wordlist[], int* entryCount) {
 }
 
 // VOID ADDFROMFILE
+
 /// displays all words in struct wordlist[] and gives the user the option to select an index and edit the word in that index
 void editWords(gameData wordlist[], int* entryCount){
 	int editIndex;
@@ -232,6 +234,8 @@ void gameCheck(playerData *player) {
 			player->nLives = 3;
 			player->nScore = 0;
 			player->nSavedGames = 0;
+			player->nAnswered = 0;
+			
 			printf("Starting anew!\n");
 		} else {
 			printf("Continuing where we left off. . .\n");
@@ -242,6 +246,7 @@ void gameCheck(playerData *player) {
 		player->nLives = 3;
 		player->nScore = 0;
 		player->nSavedGames = 0;
+		player->nAnswered = 0;
 	}
 }
 
@@ -263,6 +268,27 @@ char randomLetter(char *word) {
 	return c;
 }
 
+// saves the game
+void saveGame(playerData *player){
+	FILE *fp = fopen("savefile.txt", "w");
+	int trackSave;
+	
+	if(fp){ // if the file opens, 
+		// the save tracker is set to a print statement to track if said statement runs 
+		trackSave = fprintf(fp, "%s | %d | %d | %.1f | %d", player->strName, player->nLives, player->nLevel, player->nScore, player->nAnswered);
+	
+		if(trackSave < 0){
+			printf("Failed to write save data.");
+		} else {
+			printf("Game saved successfully!");
+		}
+		
+		fclose(fp);
+	} else {
+		printf("Failed to write save data.");
+	}
+}
+
 // main game function yeyy
 void playTime(playerData *player, gameData wordlist[], int* entryCount) {
     gameData temp; // will be used for keeping track of words used
@@ -272,7 +298,8 @@ void playTime(playerData *player, gameData wordlist[], int* entryCount) {
     int foundWord;
     char strAnswer[LENGTH];
     char cLetter;
-	int continueSearch;
+	char cSave;
+	int continueSearch; 
 	int i;
 
     printf("Please input player username: ");
@@ -293,12 +320,12 @@ void playTime(playerData *player, gameData wordlist[], int* entryCount) {
                     foundWord = 1;
                     points = 2.5;
 					continueSearch = 0;
-                } else if (player->nLevel <= 5 && wordLength <= 8) {  // Fixed condition
+                } else if (player->nLevel <= 5 && wordLength <= 8) {
                     currentWord = i;
                     foundWord = 1;
                     points = 4.0;
 					continueSearch = 0;
-                } else if(player->nLevel >= 6 && wordLength >= 9) {  // Fixed condition
+                } else if(player->nLevel >= 6 && wordLength >= 9) { 
                     currentWord = i;
                     foundWord = 1;
                     points = 7.0;
@@ -321,6 +348,7 @@ void playTime(playerData *player, gameData wordlist[], int* entryCount) {
                     printf("Correct!\n");
                     (player->nScore) += points; 
                     player->nLevel++;
+					player->nAnswered++;
                     
 					// indicates used word
 					temp = wordlist[currentWord];
@@ -335,7 +363,14 @@ void playTime(playerData *player, gameData wordlist[], int* entryCount) {
                     player->nLives--;
                 }
 
-                printf("Score: %.1f | Lives: %d\n", player->nScore, player->nLives);  // Fixed: use %.1f for float
+                printf("Score: %.1f | Lives: %d\n", player->nScore, player->nLives);  
+				
+				printf("Do you want to save your progess? [Y/N] ");
+				scanf(" %c", &cSave);
+				if(cSave == 'Y' || cSave == 'y'){
+					saveGame(player);
+					printf("Game saved!\n");
+				}
             } else {
                 colorRed();
                 printf("No words available for this level!\n");
@@ -355,6 +390,41 @@ void playTime(playerData *player, gameData wordlist[], int* entryCount) {
     } else {
         printf("No words available to play! Please add words first.\n");
     }
+}
+
+// sorting function using selection sort 
+void sortHighScores(playerData player[], int* entryCount){
+	int i;
+	int j;
+	int nHigh = 0;	
+	playerData nTemp;
+	
+	printf("PLAYER   |   CORRECT ANSWERS   |   HIGH SCORE");
+	for(i = 0; i < *entryCount - 1; i++){
+		nHigh = i;
+		for(j = i+1; j < *entryCount; j++){
+			if(player[j].nScore > player[nHigh].nScore){
+				nHigh = j;
+			}
+		}
+		
+		if(nHigh != i){
+			nTemp = player[i];
+			player[i] = player[nHigh];
+			player[nHigh] = nTemp;
+		}
+	}
+}
+
+// displays the high scores
+void displayHighScores(playerData player[], int* entryCount){
+	int i;
+	sortHighScores(player, entryCount);
+	
+	printf("PLAYER   |   CORRECT ANSWERS   |   HIGH SCORE");
+	for(i = 0; i < *entryCount; i++){
+		printf("%s   %d   %d", player[i].strName, player[i].nAnswered, player[i].nScore);
+	}
 }
 
 // this will quit the game
@@ -440,14 +510,23 @@ void mainMenu(gameData wordlist[], int* entryCount) {
 		printf("Enter choice: ");
 		scanf("%d", &nChoice);
 
-		if (nChoice == 1) {
-			adminMenu(wordlist, entryCount);
-		} else if (nChoice == 2) {
-			playTime(&player, wordlist, entryCount);
-		} else if (nChoice == 3 || nChoice == 4) {
-			quitGame(); // placeholder
-		} else if (nChoice != 5) {
-			printf("Invalid choice. Try again.\n");
+		switch(nChoice){
+			case 1: 
+				adminMenu(wordlist, entryCount);
+				break;
+			case 2: 
+				playTime(&player, wordlist, entryCount);
+				break;
+			case 3: 
+				displayHighScores(&player, entryCount);
+				break;
+			case 4: 
+				saveGame(&player);
+				break;
+			case 5:
+				quitGame();
+				break;
+			default: printf("Invalid choice. Try again.\n");
 		}
 	} while (nChoice != 5);
 }
