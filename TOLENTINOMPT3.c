@@ -1,10 +1,13 @@
 ///// VERY VERY INCOMPLETE
 /*
-	NEEDED AS OF JUNE 30, 2025 5:50PM:
-	- Figure out how to save new game without mere appending + completely rewriting saved
-	- Saving games and scores into saved.txt and scores.txt respectively
-	- Add words through file processing 
+	NEEDED AS OF JULY 1, 2025 12:50PM:
+	- File processing works but accidentally rewriting original files (ToT)
+	- Unsure if guesses by user must be case-sensitive if randomizer is Not case-sensitive
+	- MORE COMMENTS!!!!
 
+
+EXTRA RESOURCES:
+https://www.geeksforgeeks.org/c/scanf-and-fscanf-in-c/ [Returning quantities of inputs with fscanf]
 */
 
 #include<stdio.h>
@@ -18,16 +21,21 @@
 /***
 FUNCTION PROTOTYPES:
 
-void addWordsManual(gameData wordlist[], int* entryCount)
+int isDuplicate(gameData wordlist[], int n, char word[]) 
+void addWordsManual(gameData wordlist[], int* entryCount) 
+void addFromFile(gameData wordlist[], int* entryCount)
 void editWords(gameData wordlist[], int* entryCount)
-void deleteWords(gameData wordlist[], int* entryCount)
-void playTime(playerData *player, gameData wordlist[], int* entryCount) {
-void adminMenu(gameData wordlist[], int* entryCount)
-void mainmenu(gameData wordlist[], int* entryCount)
-void quitGame()
+void deleteWords(gameData wordlist[], int *entryCount)
+void gameCheck(playerData *player) 
+char randomLetter(char *word) 
+void saveGame(playerData *player)
+void playTime(playerData *player, gameData wordlist[], int* entryCount) 
+void sortHighScores(playerData player[], int* entryCount)
+void displayHighScores(playerData player[], int* entryCount)
+void quitGame() 
+void adminMenu(gameData wordlist[], int* entryCount) 
+void mainMenu(gameData wordlist[], int* entryCount) 
 
-int isDuplicate(gameData wordlist[], int count, char word[])
-char randomLetterGenerator(char *word)
 
 ***/
 
@@ -109,7 +117,54 @@ void addWordsManual(gameData wordlist[], int* entryCount) {
 	}
 }
 
-// VOID ADDFROMFILE
+// adds words from file input
+void addFromFile(gameData wordlist[], int* entryCount){
+	FILE *fAdd = NULL; 
+	char filename[50];
+	char word[LENGTH]; // keeps words from inputted file
+	char clue[LENGTH]; // keeps clues from inputted file
+	int openedFile = 0;
+	int nInputted = 1; // ensures that line reading is successful for all 3 required inputs (word, 1/0 indicator/)
+	int nUsed = 0; // 1 if used, 0 if not yet
+	int nAdded = 0;
+	int nDuplicate = isDuplicate(wordlist, *entryCount, word);
+	
+	printf("Enter a file to import: ");
+	scanf(" %[^\n]", filename);
+	strcat(filename, ".txt"); // adds a .txt to ensure that the program is processing a text file even if user inputs a non-textfile format
+	
+	fAdd = fopen(filename, "r");
+	openedFile = (fAdd != NULL);
+	
+	if(openedFile){
+		nInputted = (fscanf(fAdd, " %[^\n]", word) == 1); // only 1 word can be read at a time
+		nInputted = nInputted && (fscanf(fAdd, " %d", &nUsed) == 1); // only 1 used flag can be read at a time
+		nInputted = (fscanf(fAdd, " %[^\n]", clue) == 1); // only 1 clue can be read at a time
+		
+		while(nInputted && *entryCount < 200){
+			if(nDuplicate > 0){
+				printf("Duplicate word. Please enter a different one\n");
+			} else {
+				strcpy(wordlist[*entryCount].strWord, word);
+				strcpy(wordlist[*entryCount].strClue, clue);
+				(*entryCount)++;
+				nAdded++;
+				printf("Added entries successfully!\n");
+			}
+			
+			// reading the next set of words
+			nInputted = (fscanf(fAdd, " %[^\n]", word) == 1); // only 1 word can be read at a time
+			nInputted = nInputted && (fscanf(fAdd, " %d", &nUsed) == 1); // only 1 used flag can be read at a time
+			nInputted = (fscanf(fAdd, " %[^\n]", clue) == 1); // only 1 clue can be read at a time
+		}
+		fclose(fAdd);
+	}
+	if(openedFile){
+		printf("Added %d new words from file %s\n", nAdded, filename);
+	} else {
+		printf("ERROR!\n");
+	}
+}
 
 /// displays all words in struct wordlist[] and gives the user the option to select an index and edit the word in that index
 void editWords(gameData wordlist[], int* entryCount){
@@ -182,7 +237,7 @@ void editWords(gameData wordlist[], int* entryCount){
 	
 }
 
-// delete function
+// delete functionplay
 void deleteWords(gameData wordlist[], int *entryCount){
     int index;
     int i;
@@ -269,29 +324,72 @@ char randomLetter(char *word) {
 }
 
 // saves the game
-void saveGame(playerData *player){
-	FILE *fp = fopen("savefile.txt", "w");
-	int trackSave;
-	
-	if(fp){ // if the file opens, 
-		// the save tracker is set to a print statement to track if said statement runs 
-		trackSave = fprintf(fp, "%s | %d | %d | %.1f | %d", player->strName, player->nLives, player->nLevel, player->nScore, player->nAnswered);
-	
-		if(trackSave < 0){
-			printf("Failed to write save data.");
-		} else {
-			printf("Game saved successfully!");
+/// help this makes me uncofmy
+void saveGame(playerData *player, gameData wordlist[], int* entryCount){
+	FILE *fGame = NULL;
+	FILE *fData = NULL;
+	playerData allPlayers[100]; // an array of data for 100 players
+	int count = 0;
+	int found = 0;
+	int userData;
+	int used = 0;
+	int i;
+
+	// read pre-existing game data from previous save file
+	fGame = fopen("savefile.txt", "r");
+	if(fGame != NULL){ // if the file opens, 
+		userData = fscanf(fGame, "%s|%d|%d|%f|%d\n", allPlayers[count].strName, &allPlayers[count].nLives, &allPlayers[count].nLevel, &allPlayers[count].nScore, &allPlayers[count].nAnswered);
+		while(userData == 5 && count < 99){
+			count++;
 		}
-		
-		fclose(fp);
+		fclose(fGame);
+	}
+	
+	// Iterates through the playerData list nad compares previously existing usernames with newly inputted ones 
+	for(i = 0; i < count && !found; i++){
+		if(strcmp(allPlayers[i].strName, player->strName) == 0){
+			allPlayers[i] = *player;
+			found = 1;
+		}
+	}
+	
+	// adds a new player save if player is not found
+	if(!found && count < 100){
+		allPlayers[count++] = *player;
+	}
+	
+	// saves new player data into the save file
+	fGame = fopen("savefile.txt", "w");
+	if(fGame != NULL){
+		for(i = 0; i < count; i++){
+			fprintf(fGame, "%s | %d | %d | %f | %d\n", allPlayers[i].strName, &allPlayers[i].nLives, &allPlayers[i].nLevel, &allPlayers[i].nScore, &allPlayers[i].nAnswered); ///// SMTH IS DEFINITELY WRONG!!!!!
+			
+			if(userData < 0){
+				printf("No data detected for %s :/", allPlayers[i].strName);
+			}
+		}
+		fclose(fGame);
+		printf("User %s's game saved successfully!", player->strName);
 	} else {
-		printf("Failed to write save data.");
+		printf("Error saving game data :(\n");
+	}
+	
+	fData = fopen("data.txt", "w"); ///// SMTH IS DEFINITELY WRONG!!!!!
+	if(fData != NULL){
+		for(i = 0; i < *entryCount; i++){
+			if(i >= (*entryCount - player->nAnswered)){ // total words - words successfully answeed by the user
+				used = 1;
+			}
+			fprintf(fData, "%s\n%d\n%s\n\n", wordlist[i].strWord, used, wordlist[i].strClue);
+		}
+		fclose(fData);
 	}
 }
 
 // main game function yeyy
 void playTime(playerData *player, gameData wordlist[], int* entryCount) {
     gameData temp; // will be used for keeping track of words used
+	FILE *scoresFile = NULL;
 	float points = 0;
     int currentWord;
     int wordLength;
@@ -368,7 +466,7 @@ void playTime(playerData *player, gameData wordlist[], int* entryCount) {
 				printf("Do you want to save your progess? [Y/N] ");
 				scanf(" %c", &cSave);
 				if(cSave == 'Y' || cSave == 'y'){
-					saveGame(player);
+					saveGame(player, wordlist, entryCount);
 					printf("Game saved!\n");
 				}
             } else {
@@ -386,6 +484,12 @@ void playTime(playerData *player, gameData wordlist[], int* entryCount) {
             colorGreen();
             printf("Your total score was %.1f!\n", player->nScore);
             resetColor();
+			
+			scoresFile = fopen("scores.txt", "a");
+			if(scoresFile != NULL){
+				fprintf(scoresFile, "%s | %.1f | %d\n", player->strName, player->nScore, player->nAnswered);
+				fclose(scoresFile);
+			}
         }
     } else {
         printf("No words available to play! Please add words first.\n");
@@ -418,12 +522,30 @@ void sortHighScores(playerData player[], int* entryCount){
 
 // displays the high scores
 void displayHighScores(playerData player[], int* entryCount){
+	FILE *fHighScores = NULL;
+	playerData scores[100]; // an array of data for 100 scorers
+	int scoreQuantity;
+	int count = 0; 
 	int i;
-	sortHighScores(player, entryCount);
+	
+	fHighScores = fopen("scores.txt", "r");
+	if(fHighScores != NULL){
+		scoreQuantity = fscanf(fHighScores, " %[^n] | %f | %d\n", scores[count].strName, &scores[count].nScore, &scores[count].nAnswered);
+		while(scoreQuantity == 3 && count < 100){
+			count++;
+		}
+		fclose(fHighScores);
+	}
+	
+	sortHighScores(scores, &count);
 	
 	printf("PLAYER   |   CORRECT ANSWERS   |   HIGH SCORE");
 	for(i = 0; i < *entryCount; i++){
 		printf("%s   %d   %d", player[i].strName, player[i].nAnswered, player[i].nScore);
+	}
+	
+	if(count == 0){
+		printf("No scores added yet~\n");
 	}
 }
 
@@ -466,7 +588,7 @@ void adminMenu(gameData wordlist[], int* entryCount) {
 					addWordsManual(wordlist, entryCount);
 					break;
 				case 2: 
-					quitGame();
+					addFromFile(wordlist, entryCount);
 					break;
 				case 3: 
 					editWords(wordlist, entryCount);
@@ -521,7 +643,7 @@ void mainMenu(gameData wordlist[], int* entryCount) {
 				displayHighScores(&player, entryCount);
 				break;
 			case 4: 
-				saveGame(&player);
+				saveGame(&player, wordlist, entryCount);
 				break;
 			case 5:
 				quitGame();
