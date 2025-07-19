@@ -1,0 +1,6 @@
+Newspaper
+0
+no
+Spaceship
+0
+A vehicle made to travel beyond Earth.

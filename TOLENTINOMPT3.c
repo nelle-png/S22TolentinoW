@@ -1,6 +1,7 @@
-///// VERY VERY INCOMPLETE
+/////
 /*
-	NEEDED AS OF JULY 1, 2025 12:50PM:
+	RANDOM LETTER VERSION
+	NEEDED AS OF JULY 18, 2025 
 	- my data.txt file keeps getting rewritten and its getting way too annoying ( T o T )
 	- Needs more testing on broken/invalid inputs
 	- pretty much everything is almost fixed, just need clarification on some parts of the specs
@@ -10,6 +11,8 @@
 
 EXTRA RESOURCES:
 https://www.geeksforgeeks.org/c/scanf-and-fscanf-in-c/ [Returning quantities of inputs with fscanf]
+
+https://stackoverflow.com/questions/34874347/what-does-an-asterisk-in-a-scanf-format-specifier-mean [scanf with *, reading a character but not assigning it to a variable]
 */
 
 #include<stdio.h>
@@ -248,8 +251,9 @@ void editWords(gameData wordlist[], int* entryCount){
 		
 		validInput = 0;
 		while(!validInput){
-			printf("Enter the index of the entry you wish to edit (%d - %d): ", *entryCount+1, *entryCount-1);
+			printf("Enter the index of the entry you wish to edit (1 - %d): ", *entryCount);
 			scanf("%d", &editIndex);
+			editIndex--; // zero-based indexing
 			
 			if(editIndex >= 0 && editIndex < *entryCount){
 				validInput = 1;
@@ -386,9 +390,9 @@ void saveGame(playerData *player, gameData wordlist[], int* entryCount){
     fGame = fopen("savefile.txt", "r");
     if(fGame != NULL){ // if the file opens, 
         userData = fscanf(fGame, "%[^|]|%d|%d|%f|%d\n", allPlayers[count].strName, &allPlayers[count].nLives, &allPlayers[count].nLevel, &allPlayers[count].nScore, &allPlayers[count].nAnswered);
+		
         while(userData == 5 && count < 99){
             count++;
-            userData = fscanf(fGame, "%[^|]|%d|%d|%f|%d\n", allPlayers[count].strName, &allPlayers[count].nLives, &allPlayers[count].nLevel, &allPlayers[count].nScore, &allPlayers[count].nAnswered);
         }
         fclose(fGame);
     }
@@ -410,7 +414,7 @@ void saveGame(playerData *player, gameData wordlist[], int* entryCount){
     fGame = fopen("savefile.txt", "w");
     if(fGame != NULL){
         for(i = 0; i < count; i++){
-            fprintf(fGame, "%s|%d|%d|%.1f|%d\n", allPlayers[i].strName, allPlayers[i].nLives, allPlayers[i].nLevel, allPlayers[i].nScore, allPlayers[i].nAnswered); ///// SMTH IS DEFINITELY WRONG!!!!!
+            fprintf(fGame, "%s\n%.1f\n%d\n\n", allPlayers[i].strName, allPlayers[i].nScore, allPlayers[i].nAnswered); 
             
             if(userData < 0){
                 printf("No data detected for %s :/", allPlayers[i].strName);
@@ -422,13 +426,13 @@ void saveGame(playerData *player, gameData wordlist[], int* entryCount){
         printf("Error saving game data :(\n");
     }
     
-    fData = fopen("data.txt", "w"); ///// SMTH IS DEFINITELY WRONG!!!!!
+    fData = fopen("data.txt", "w"); 
     if(fData != NULL){
         for(i = 0; i < *entryCount; i++){
             if(i >= (*entryCount - player->nAnswered)){ // total words - words successfully answeed by the user
                 used = 1;
             }
-            fprintf(fData, "%s|%d|%s\n", wordlist[i].strWord, used, wordlist[i].strClue);
+            fprintf(fData, "%s\n%d\n%s\n\n", wordlist[i].strWord, used, wordlist[i].strClue);
         }
         fclose(fData);
     }
@@ -446,9 +450,8 @@ void playTime(playerData *player, gameData wordlist[], int* entryCount) {
     char cLetter;
     char cSave;
     char saveCode[200];
-    int continueSearch; 
     int i;
-    int validWordExists = 0; // flag to check if any valid words exist for current level
+    int validWord = 0; // flag to check if any valid words exist for current level
 
     printf("Please input player username: ");
     scanf(" %49[^\n]", player->strName);
@@ -458,51 +461,47 @@ void playTime(playerData *player, gameData wordlist[], int* entryCount) {
     if (*entryCount > 0) {
         while (player->nLives > 0) {
             foundWord = 0;
-            continueSearch = 1;
-            validWordExists = 0; // reset for each level attempt
+            validWord = 0; // reset for each level attempt
             currentWord = -1; // initialize to invalid index
 
-            /* FIRST PASS: Check if ANY words exist for current level */
             i = 0;
-            while (i < *entryCount && validWordExists == 0) {
+            while (i < *entryCount && validWord == 0) {
                 wordLength = strlen(wordlist[i].strWord);
                 
                 // Strict level checks - exactly matching your requirements
                 if (player->nLevel <= 3 && wordLength <= 4) {
-                    validWordExists = 1; // found at least one valid word
+                    validWord = 1; // found at least one valid word
                 }
                 else if (player->nLevel <= 5 && wordLength > 4 && wordLength <= 8) {
-                    validWordExists = 1; // found at least one valid word
+                    validWord = 1; // found at least one valid word
                 }
                 else if (player->nLevel >= 6 && wordLength >= 9) {
-                    validWordExists = 1; // found at least one valid word
+                    validWord = 1; // found at least one valid word
                 }
                 i++;
             }
 
-            /* SECOND PASS: Now find specific word if valid words exist */
-            if (validWordExists) {
+            if (validWord) {
                 i = 0;
                 while (i < *entryCount && foundWord == 0) {
                     wordLength = strlen(wordlist[i].strWord);
                     
-                    // STRICT level matching - no overlaps between levels
-                    if (player->nLevel <= 3) {
-                        if (wordLength <= 4) { // ONLY 1-4 letters for levels 1-3
+                    if (player->nLevel <= 3){
+                        if (wordLength <= 4){
                             currentWord = i;
                             foundWord = 1;
                             points = 2.5;
                         }
                     }
                     else if (player->nLevel <= 5) {
-                        if (wordLength > 4 && wordLength <= 8) { // ONLY 5-8 letters for levels 4-5
+                        if (wordLength > 4 && wordLength <= 8) { 
                             currentWord = i;
                             foundWord = 1;
                             points = 4.0;
                         }
                     }
                     else if (player->nLevel >= 6) {
-                        if (wordLength >= 9) { // ONLY 9+ letters for levels 6+
+                        if (wordLength >= 9) { 
                             currentWord = i;
                             foundWord = 1;
                             points = 7.0;
@@ -512,8 +511,8 @@ void playTime(playerData *player, gameData wordlist[], int* entryCount) {
                 }
             }
 
-            /* Handle game state based on word found status */
-            if (validWordExists == 0) {
+           // Game status
+            if (validWord == 0) {
                 colorRed();
                 printf("No words available for Level %d!\n", player->nLevel);
                 resetColor();
@@ -544,36 +543,37 @@ void playTime(playerData *player, gameData wordlist[], int* entryCount) {
                 } 
                 else {
                     colorRed();
-                    printf("Incorrect. The correct word was: %s\n", wordlist[currentWord].strWord);
+                    printf("Incorrect. Try that again..");
                     resetColor();
                     player->nLives--;
                 }
 
                 printf("Score: %.1f | Lives: %d\n", player->nScore, player->nLives);  
-                
-                printf("Do you want to save your progess? [Y/N] ");
-                scanf(" %c", &cSave);
-                if(cSave == 'Y' || cSave == 'y'){
-                    saveGame(player, wordlist, entryCount);
-                    printf("Game saved!\n");
-                }
             }
         }
 
         if (player->nLives == 0) {
             colorYellow();
             printf("\nGAME OVER :(\n");
+			printf("The correct word was: %s\n", wordlist[currentWord].strWord);
             resetColor();
             colorGreen();
             printf("Your total score was %.1f!\n", player->nScore);
             resetColor();
+			
+			printf("Do you want to save your progess? [Y/N] ");
+                scanf(" %c", &cSave);
+                if(cSave == 'Y' || cSave == 'y'){
+                    saveGame(player, wordlist, entryCount);
+                    printf("Game saved!\n");
+                }
             
             printf("Enter your own specialized code to save your score!: ");
             scanf(" %[^\n]", saveCode);
             
             scoresFile = fopen("scores.txt", "a");
             if(scoresFile != NULL){
-                fprintf(scoresFile, "%s | %.1f | %d | %s\n", player->strName, player->nScore, player->nAnswered, saveCode);
+                fprintf(scoresFile, "%s\n%.1f\n%d\n\n", player->strName, player->nScore, player->nAnswered);
                 fclose(scoresFile);
             }
         }
@@ -610,18 +610,17 @@ void sortHighScores(playerData player[], int* entryCount){
 void displayHighScores(){
 	FILE *fHighScores = NULL;
 	playerData scores[100]; // an array of data for 100 scorers
-	int scoreQuantity;
 	int count = 0; 
 	int i;
 	
 	fHighScores = fopen("scores.txt", "r");
-	if(fHighScores != NULL){
-		scoreQuantity = fscanf(fHighScores, " %[^n] | %f | %d\n", scores[count].strName, &scores[count].nScore, &scores[count].nAnswered);
-		while(scoreQuantity == 3 && count < 100){
-			count++;
-		}
-		fclose(fHighScores);
-	}
+    if(fHighScores != NULL) {
+        
+        while(count < 100 && fscanf(fHighScores, " %[^|]|%f|%d ",  scores[count].strName, &scores[count].nScore, &scores[count].nAnswered)) {
+            count++;
+        }
+        fclose(fHighScores);
+    }
 	
 	sortHighScores(scores, &count);
 	
@@ -635,99 +634,119 @@ void displayHighScores(){
 	}
 }
 
+// loads saves with lives remaining
 void loadSave(playerData *player, gameData wordlist[], int* entryCount, int* loaded){
-	FILE *fGame = NULL;
-	FILE *fData = NULL;
-	char playerCode[LENGTH]; // code set by players
-	int count = 0; // counter for player data saved 
-	int choice = 0; 
-	int i;
-	int scanResult;
-	int used;
-	*loaded = 0; // game is not loaded by default
-	gameData temp;
-	playerData prevPlayers[100];
-	
-	// initializingup to 100 saved players for this specific function
-	for(i = 0; i < 100; i++){
-		prevPlayers[i].strName[0] = '\0';
-		prevPlayers[i].nLives = 0;
-		prevPlayers[i].nLevel = 0;
-		prevPlayers[i].nScore = 0;
-		prevPlayers[i].nAnswered = 0;
-	}
-	
-	// read pre-existing game data from previous save file
-	fGame = fopen("savefile.txt", "r");
-	if(fGame != NULL){ // if the file opens, 
-		i = 0;
-		
-		while(i < 100){
-			scanResult = fscanf(fGame, "%s|%d|%d|%f|%d\n", prevPlayers[count].strName, &prevPlayers[count].nLives, &prevPlayers[count].nLevel, &prevPlayers[count].nScore, &prevPlayers[count].nAnswered);
-			
-			if(scanResult != 5){ // if the scanner detects more than 5 inputs (name/lives/level/score/successful answers), then the loop exits. otherwise keep going
-				i = 100;;
-			} else {
-				count++; // detected a saved game wowowoow
-				i++; // saves said game into an index
-			}
-		}
-		fclose(fGame);
-	}
-	
-	if(count == 0){
-		printf("No saved games detected ://\n");
-	} else {
-		printf("GAME NUMBER | PLAYER ID | LEVEL | LIVES | SCORE\n");
-		for(i = 0; i < count; i++){
-			printf("%d | %s | %d | %d | %d | %d\n", i+1, prevPlayers[i].strName, prevPlayers[i].nLives, prevPlayers[i].nLevel, prevPlayers[i].nScore);
-		}
-		
-		printf("Enter the number of the game you wish to load [0 to cancel selection]: ");
-		scanf("%d", &choice);
-		
-		// if choice is above 0 / reaches the final available count of player data
-		if(choice > 0 && choice <= count){
-			printf("Enter verification code for selected user: ");
-			scanf("%[^\n]", playerCode);
-			
-			if(strcmp(playerCode, prevPlayers[choice-1].strName) == 0){
-				*player = prevPlayers[choice-1]; // if code entered is correct, load the selected player,,, index-1 for numbering purposes
-				
-				// read and load the words
-				fData = fopen("data.txt", "r");
-				
-				if(fData != NULL){
-					i = 0;
-					while(i < *entryCount){
-						scanResult = fscanf(fData, " %[^\n] %d %[^\n]", wordlist[i].strWord, &used, wordlist[i].strClue);
-						
-						if(scanResult != 3){
-							i = *entryCount; // exit if condition if scanned word data from file exceeds 3
-						} else {
-							if(used){ // swap condition to move used words to the end
-								temp = wordlist[i];
-                                wordlist[i] = wordlist[*entryCount-1];
-                                wordlist[*entryCount-1] = temp;
-                                (*entryCount)--;
-							} else {
-								i++;
-							}
-						}
-					}
-					fclose(fData);
-				}
-				printf("Game loaded successfully!\n");
-				*loaded = 1;
-			} else {
-				printf("Verification failed :( Data will not be loaded\n");
-			}
-		} else if (choice == 0) {
-			printf("Load cancelled :(\n");
-		}  else {
-			printf("No saved games found :( \n");
-		}
-	}
+    FILE *fGame = NULL;
+    FILE *fData = NULL;
+    char playerCode[LENGTH]; // code set by players
+    int count = 0; // counter for player data saved 
+    int choice = 0; 
+    int i;
+    int continueRead = 1; // automatically continue reading 
+    int scanResult;
+    int used;
+    *loaded = 0; // game is not loaded by default
+    gameData temp;
+    playerData prevPlayers[100];
+    
+    // initializingup to 100 saved players for this specific function
+    for(i = 0; i < 100; i++){
+        prevPlayers[i].strName[0] = '\0';
+        prevPlayers[i].nLives = 0;
+        prevPlayers[i].nLevel = 0;
+        prevPlayers[i].nScore = 0;
+        prevPlayers[i].nAnswered = 0;
+    }
+    
+    // read pre-existing game data from previous save file
+    fGame = fopen("savefile.txt", "r");
+    if(fGame != NULL){ // if the file opens, 
+        i = 0;
+        
+        while(i < 100){
+            scanResult = fscanf(fGame, "%[^|]|%d|%d|%f|%d\n", 
+                  prevPlayers[i].strName, &prevPlayers[i].nLives, 
+                  &prevPlayers[i].nLevel, &prevPlayers[i].nScore, 
+                  &prevPlayers[i].nAnswered);
+            
+            if(scanResult != 5){ // if the scanner detects more than 5 inputs (name/lives/level/score/successful answers), then the loop exits. otherwise keep going
+                continueRead = 0;
+                i = 100;
+            } else {
+                i++; // saves said game into an index
+                count++;
+                if(i >= 100){
+                    continueRead = 0; // stop raeding when i reaches 100
+                }
+            }
+        }
+        fclose(fGame);
+    }
+    
+    if(count == 0){
+        printf("No saved games detected ://\n");
+    } else {
+        printf("GAME NUMBER | PLAYER ID | LEVEL | LIVES | SCORE\n");
+        for(i = 0; i < count; i++){
+            printf("%d | %s | %d | %d | %.1f\n", 
+                  i+1, prevPlayers[i].strName, prevPlayers[i].nLevel, 
+                  prevPlayers[i].nLives, prevPlayers[i].nScore);
+        }
+        
+        printf("Enter the number of the game you wish to load [0 to cancel selection]: ");
+        if(scanf("%d", &choice) != 1) choice = -1; // Handle invalid input
+        
+        scanf("%*[^\n]");  // Discard remaining characters
+        scanf("%*c");      // Discard the newline
+        
+        // if choice is above 0 / reaches the final available count of player data
+        if(choice > 0 && choice <= count){
+            printf("Enter verification code for selected user: ");
+            scanf("%[^\n]", playerCode);
+            scanf("%*[^\n]"); scanf("%*c"); // Clear buffer
+            
+            if(strcmp(playerCode, prevPlayers[choice-1].strName) == 0){
+                if(prevPlayers[choice-1].nLives > 0) { // Check lives remaining
+                    *player = prevPlayers[choice-1]; // if code entered is correct, load the selected player,,, index-1 for numbering purposes
+                    
+                    // read and load the words
+                    fData = fopen("data.txt", "r");
+                    
+                    if(fData != NULL){
+                        *entryCount = 0;
+                        i = 0;
+                        continueRead = 1;
+                        while(continueRead && i < 200){ // Fixed maximum word count
+                            scanResult = fscanf(fData, " %[^\n] %d %[^\n]", 
+                                  wordlist[*entryCount].strWord, 
+                                  &used, 
+                                  wordlist[*entryCount].strClue);
+                            
+                            if(scanResult != 3){
+                                continueRead = 0; // exit if condition if scanned word data from file exceeds 3
+                            } else {
+                                if(!used){ // Only keep unused words
+                                    (*entryCount)++;
+                                }
+                                i++;
+                            }
+                        }
+                        fclose(fData);
+                    }
+                    printf("Game loaded successfully!\n");
+                    *loaded = 1;
+                } else {
+                    printf("Cannot load - no lives remaining!\n");
+                }
+            } else {
+                printf("Verification failed :( Data will not be loaded\n");
+            }
+        } else if (choice == 0) {
+            printf("Load cancelled :(\n");
+        } else {
+            printf("Invalid selection :( \n");
+        }
+    }
 }
 
 // this will quit the game
