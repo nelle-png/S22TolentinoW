@@ -1,11 +1,12 @@
 /////
 /*
-	RANDOM LETTER VERSION
 	JULY 23, 2025
 	- DONE WITH BASE CODE FINALLY ( T o T )
 	- DOCUMENTATION!!!!
 	- Bonus features to be added right after current documentation :3 outlines are commented out right now
 	- need 1 more bonus feature
+	- include resource list (APA format)
+	- DESIGN!!!
 
 
 EXTRA RESOURCES:
@@ -637,6 +638,30 @@ void sortHighScores(playerData player[], int* entryCount){
 	}
 }
 
+// resets saved games
+void resetSavedGames(){
+    FILE *fSaved = fopen("saved.txt", "w");
+	
+    if (fSaved == NULL) {
+        printf(RED "Error clearing saved games :(\n" RESET);
+    } else {
+        fclose(fSaved);
+        printf(GREEN "Cleared all saved games :D\n" RESET);
+    }
+}
+
+// resets high scores
+void resetHighScore(){
+    FILE *fSaved = fopen("scores.txt", "w");
+	
+    if (fSaved == NULL) {
+        printf(RED "Error clearing high scores :(\n" RESET);
+    } else {
+        fclose(fSaved);
+        printf(GREEN "Cleared all high scores :D\n" RESET);
+    }
+}
+
 /*
 /// EXTRA: Achievement Save System
 void saveAchievements(){}
@@ -771,10 +796,12 @@ void adminMenu(gameData wordlist[], int* entryCount) {
 			printf("|~~~  Welcome to GUESSING WORD GAME     ~~~|\n");
 			printf("|           You are in ADMIN OPTIONS         |\n");
 			printf("|" MAGENTA    "[1] MANUAL WORD ADDITION"      RESET "      |\n");
-			printf("|" BLUE       "[2] ADD WORDS FROM FILE"       RESET "       |\n");
-			printf("|" GREEN      "[3] EDIT WORDS"                RESET "                |\n");
-			printf("|" YELLOW     "[4] DELETE WORDS"              RESET "              |\n");
-			printf("|" RED        "[5] EXIT"                      RESET "                      |\n");
+			printf("|" CYAN       "[2] ADD WORDS FROM FILE"       RESET "       |\n");
+			printf("|" BLUE     "[3] EDIT WORDS"                RESET "                |\n");
+			printf("|" GREEN     "[4] DELETE WORDS"              RESET "              |\n");
+			printf("|" YELLOW     "[5] RESET SAVED GAMES"              RESET "              |\n");
+			printf("|" RED        "[6] RESET HIGH SCORE"                      RESET "                      |\n");
+			printf("|" RESET        "[7] EXIT"                      RESET "                      |\n");
 			printf("+--------------------------------------------+\n\n\n");
 
 
@@ -795,11 +822,17 @@ void adminMenu(gameData wordlist[], int* entryCount) {
 					deleteWords(wordlist, entryCount);
 					break;
 				case 5:
+					resetSavedGames();
+					break;
+				case 6:
+					resetHighScore();
+					break;
+				case 7:
 					quitGame();
 					break;
 				default: printf("Invalid choice. Try again.\n");
 			}
-		} while (nChoice != 5);
+		} while (nChoice != 6);
 	} else {
 		printf("Wrong password. Try again!\n");
 	}
