@@ -1,12 +1,11 @@
 /////
 /*
-	JULY 23, 2025
-	- DONE WITH BASE CODE FINALLY ( T o T )
-	- DOCUMENTATION!!!!
-	- Bonus features to be added right after current documentation :3 outlines are commented out right now
-	- need 1 more bonus feature
+	JULY 24, 2025
+	- Working on more bonus features 
 	- include resource list (APA format)
 	- DESIGN!!!
+	
+	***NOTE: This specific file hasn't been fully run yet, I'm just working on coding the basics before full debugs
 
 
 EXTRA RESOURCES:
@@ -153,6 +152,73 @@ void saveWordlist(gameData wordlist[], int entryCount){
 		fclose(fData);
 	}
 }
+
+/* gameCheck reads from the file saved.txt and reinitializes the contents of the playerData struct if saved is not found
+	@param player - accesses the playerData struct 
+	
+	return saveFound 
+*/
+int gameCheck(playerData *player) {
+    /* Initializations at top */
+    FILE *fGame = fopen("saved.txt", "r");
+    int saveFound = 0;
+    playerData tempPlayer;
+    char savedName[LENGTH];
+    
+    /* Initialize player defaults */
+    player->nLevel = 1;
+    player->nLives = 3;
+    player->nScore = 0;
+    player->nAnswered = 0;
+
+    if (fGame != NULL) {
+        while (fscanf(fGame, " %[^\n]", savedName) == 1) {
+            if (fscanf(fGame, "%d", &tempPlayer.nLevel) == 1 && 
+                fscanf(fGame, "%d", &tempPlayer.nLives) == 1 && 
+                fscanf(fGame, "%f", &tempPlayer.nScore) == 1 &&
+                fscanf(fGame, "%d", &tempPlayer.nAnswered) == 1) {
+                
+                if (strcmp(savedName, player->strName) == 0) {
+                    saveFound = 1;
+                    if (tempPlayer.nLevel > player->nLevel || 
+                        (tempPlayer.nLevel == player->nLevel && tempPlayer.nScore > player->nScore)) {
+                        *player = tempPlayer;
+                        strcpy(player->strName, savedName);
+                    }
+                }
+            }
+            fscanf(fGame, "%*[^\n]"); // skips newline
+            fscanf(fGame, "%*c");
+        }
+        fclose(fGame);
+    }
+    return saveFound;
+}
+
+/* randomLetter extracts a random character from each word in the given wordlist
+	@param player - accesses the playerData struct
+	
+	return letter returns the extracted random letter
+*/
+char randomLetter(char *word) {
+	int len = strlen(word);
+	int letterIndex = 0;
+	char letter = '\0';
+
+	if (len > 0) {
+		letterIndex = rand() % len;
+		letter = word[letterIndex];
+
+		// if letter is in lowercase then gawing uppercase before it's returned
+		if (letter >= 'a' && letter <= 'z') {
+			letter -= 32; // convert to uppercase manually
+		}
+	} 
+	
+	return letter;
+}
+
+
 
 /// MAIN FUNCTIONS:
 
@@ -349,72 +415,11 @@ void deleteWords(gameData wordlist[], int *entryCount){
 	saveWordlist(wordlist, *entryCount);
 }
 
-/* gameCheck reads from the file saved.txt and reinitializes the contents of the playerData struct if saved is not found
-	@param player - accesses the playerData struct 
-	
-	return saveFound 
+/* saveGame displays all words in struct wordlist[] and gives the user the option to select an index and delete the word in that index
+	@param player - the struct that accesses player data (information about the player and their played/saved games)
+	@param wordlist - the struct that accesses game data (details for the word)
+	@param entryCount - the number of entries in wordlist
 */
-int gameCheck(playerData *player) {
-    /* Initializations at top */
-    FILE *fGame = fopen("saved.txt", "r");
-    int saveFound = 0;
-    playerData tempPlayer;
-    char savedName[LENGTH];
-    
-    /* Initialize player defaults */
-    player->nLevel = 1;
-    player->nLives = 3;
-    player->nScore = 0;
-    player->nAnswered = 0;
-
-    if (fGame != NULL) {
-        while (fscanf(fGame, " %[^\n]", savedName) == 1) {
-            if (fscanf(fGame, "%d", &tempPlayer.nLevel) == 1 && 
-                fscanf(fGame, "%d", &tempPlayer.nLives) == 1 && 
-                fscanf(fGame, "%f", &tempPlayer.nScore) == 1 &&
-                fscanf(fGame, "%d", &tempPlayer.nAnswered) == 1) {
-                
-                if (strcmp(savedName, player->strName) == 0) {
-                    saveFound = 1;
-                    if (tempPlayer.nLevel > player->nLevel || 
-                        (tempPlayer.nLevel == player->nLevel && tempPlayer.nScore > player->nScore)) {
-                        *player = tempPlayer;
-                        strcpy(player->strName, savedName);
-                    }
-                }
-            }
-            fscanf(fGame, "%*[^\n]"); // skips newline
-            fscanf(fGame, "%*c");
-        }
-        fclose(fGame);
-    }
-    return saveFound;
-}
-
-/* randomLetter extracts a random character from each word in the given wordlist
-	@param player - accesses the playerData struct
-	
-	return letter returns the extracted random letter
-*/
-char randomLetter(char *word) {
-	int len = strlen(word);
-	int letterIndex = 0;
-	char letter = '\0';
-
-	if (len > 0) {
-		letterIndex = rand() % len;
-		letter = word[letterIndex];
-
-		// if letter is in lowercase then gawing uppercase before it's returned
-		if (letter >= 'a' && letter <= 'z') {
-			letter -= 32; // convert to uppercase manually
-		}
-	} 
-	
-	return letter;
-}
-
-// saves the game. everytime this is called, it rewrites the data.txt file.
 void saveGame(playerData *player, gameData wordlist[], int* entryCount) {
     // Variable declarations at top
     FILE *fSave = NULL;
@@ -435,7 +440,11 @@ void saveGame(playerData *player, gameData wordlist[], int* entryCount) {
     }
 }
 
-// main game function yeyy
+/* playTime serves as the main game function. It calls the helper functions to check/save the game, as well as give random characters from a certain word and the word length for that word for the player to guess. It will keep running said game until the player either chooses to exit or loses all three lives.
+	@param player - the struct that accesses player data (information about the player and their played/saved games)
+	@param wordlist - the struct that accesses game data (details for the word)
+	@param entryCount - the number of entries in wordlist
+*/
 void playTime(playerData *player, gameData wordlist[], int* entryCount) {
     FILE *scoresFile = NULL;
     FILE *fData = NULL;
@@ -449,6 +458,7 @@ void playTime(playerData *player, gameData wordlist[], int* entryCount) {
     int breakout = 0;
     int i;
     char choice;
+	char mode[200] = "NORMAL"; // FOR BONUS FEATURE: Achievement system
 
     /* Get username */
     printf("Please input player username: ");
@@ -564,6 +574,7 @@ void playTime(playerData *player, gameData wordlist[], int* entryCount) {
                 player->nLevel++;
                 player->nAnswered++;
                 
+				saveAchievements(player, mode); // BONUS FEATURE: checks this function for score match
                 // Save wordlist state after correct answer
                 saveWordlist(wordlist, *entryCount);
             } 
@@ -583,6 +594,7 @@ void playTime(playerData *player, gameData wordlist[], int* entryCount) {
             if(cSave == 'N' || cSave == 'n'){
                 // Save game state before exiting
                 saveGame(player, wordlist, entryCount);
+				saveAchievements(player, mode);
                 
                 // Record score to high scores
                 scoresFile = fopen("scores.txt", "a");
@@ -590,7 +602,7 @@ void playTime(playerData *player, gameData wordlist[], int* entryCount) {
                     fprintf(scoresFile, "%s\n%.1f\n%d\n\n", player->strName, player->nScore, player->nAnswered);
                     fclose(scoresFile);
                 }
-                breakout = 1; // exit loop without using break
+                breakout = 1;
             }
         }
 
@@ -602,6 +614,7 @@ void playTime(playerData *player, gameData wordlist[], int* entryCount) {
             
             // Final save
             saveGame(player, wordlist, entryCount);
+			saveAchievements(&player, mode);
             
             // Record final score
             scoresFile = fopen("scores.txt", "a");
@@ -615,7 +628,11 @@ void playTime(playerData *player, gameData wordlist[], int* entryCount) {
     }
 }
 
-// sorting function using selection sort 
+/* sortHighScores employs a simple selection sort algorithm to sort 
+	@param player - the struct that accesses player data (information about the player and their played/saved games)
+	@param wordlist - the struct that accesses game data (details for the word)
+	@param entryCount - the number of entries in wordlist
+*/
 void sortHighScores(playerData player[], int* entryCount){
 	int i;
 	int j;
@@ -638,7 +655,9 @@ void sortHighScores(playerData player[], int* entryCount){
 	}
 }
 
-// resets saved games
+/* resetSavedGames will open saved.txt and clear everything in it.
+	pre-condition: this will rewrite everything in saved.txt and leave it blank,
+*/
 void resetSavedGames(){
     FILE *fSaved = fopen("saved.txt", "w");
 	
@@ -650,7 +669,9 @@ void resetSavedGames(){
     }
 }
 
-// resets high scores
+/* resetHighScore will open scores.txt and clear everything in it.
+	pre-condition: this will rewrite everything in scores.txt and leave it blank,
+*/
 void resetHighScore(){
     FILE *fSaved = fopen("scores.txt", "w");
 	
@@ -662,22 +683,10 @@ void resetHighScore(){
     }
 }
 
-/*
-/// EXTRA: Achievement Save System
-void saveAchievements(){}
 
+/* displayHighScores will read from the file scores.txt and display all high scores inside of it
+	pre-condition: a separate function of sortHighScores is called upon to aid in sorting
 */
-
-/*
-/// EXTRA: Hard mode!
-void playTimeHard(){}
-
-*/
-
-
-
-
-// displays the high scores
 void displayHighScores(){
 	FILE *fHighScores = NULL;
 	playerData scores[100]; // an array of data for 100 scorers
@@ -686,7 +695,7 @@ void displayHighScores(){
 	
     fHighScores = fopen("scores.txt", "r");
     if (fHighScores != NULL) {
-        while (count < 100 && fscanf(fHighScores, " %[^\n]", scores[count].strName) == 1 && fscanf(fHighScores, "%f", &scores[count].nScore) == 1 && fscanf(fHighScores, "%d", &scores[count].nAnswered) == 1) {
+        while (count < 101 && fscanf(fHighScores, " %[^\n]", scores[count].strName) == 1 && fscanf(fHighScores, "%f", &scores[count].nScore) == 1 && fscanf(fHighScores, "%d", &scores[count].nAnswered) == 1) {
         count++;
         fscanf(fHighScores, "%*[\n]");  // Reads empty newlines but skips them
         }
@@ -706,7 +715,11 @@ void displayHighScores(){
 	}
 }
 
-// loads saves with lives remaining
+/* loadSave will read from the files saved.txt and data.txt to load and continue saved scores and levels
+	@param player - the struct that accesses player data (information about the player and their played/saved games)
+	@param wordlist - the struct that accesses game data (details for the word)
+	@param entryCount - the number of entries in wordlist
+*/
 void loadSave(playerData *player, gameData wordlist[], int* entryCount, int* loaded) {
     FILE *fGame = fopen("saved.txt", "r");
     FILE *fData = fopen("data.txt", "r");
@@ -777,12 +790,127 @@ void loadSave(playerData *player, gameData wordlist[], int* entryCount, int* loa
     }
 }
 
-// this will quit the game
+/* 
+	quitGame will quit the game if selected. It also displays a thank you message.
+*/
 void quitGame() {
-	printf("Thank you for your time!\n");
+	printf(MAGENTA "Thank you for playing ⸜(｡˃ ᵕ ˂ )⸝♡ !\n" RESET);
 }
 
-// admin menu
+/***
+	BONUS FEATURES:
+	- Added an additional help feature
+	- Added an achievement save system that awards the players depending on their level/score
+	- Added a print achievement function that displays said achievements
+	- Added a hell mode
+	- Added a timer function for hell mode
+	- Added a function that saves hell mode scores
+***/
+
+/// EXTRA: Achievement check and save system
+void saveAchievements(playerData *player, char mode*){
+	FILE *fAchievements = fopen("achievements.txt", "a");
+	
+	if(player->Score >= 100){
+		fprintf(fAchievements, "%s | Word Master!\n", player->strName);
+		printf(MAGENDA "★ ACHIEVEMENT: Word Master! ★\n" RESET);
+	} else if (player->Score >= 80){
+		fprintf(fAchievements, "%s | Word Proficient!\n", player->strName);
+		printf(CYAN "★ ACHIEVEMENT: Word Proficient! ★\n" RESET);
+	} else if (player->Score >= 60) {
+		fprintf(fAchievements, "%s | Word Competent!\n", player->strName);
+		printf(CYAN "★ ACHIEVEMENT: Word Competent! ★\n" RESET);
+	} else if (player->Score >= 40) {
+		fprintf(fAchievements, "%s | Word Beginner!\n", player->strName);
+		printf(CYAN "★ ACHIEVEMENT: Word Beginner! ★\n" RESET);
+	} else if (player->Score >= 20) {
+		fprintf(fAchievements, "%s | Word Rookie!\n", player->strName);
+		printf(CYAN "★ ACHIEVEMENT: Word Rookie! ★\n" RESET);
+	} 
+	
+	if(strcmp(mode, "NORMAL") == 0){
+		fprintf(fAchievements, "%s | Average Joe! (Normal Mode Attempted)\n", player->strName);
+		printf(GREEN "★ ACHIEVEMENT: Normal Mode Novice! ★\n" RESET);
+	} else if(strcmp(mode, "HARD") == 0) {
+		fprintf(fAchievements, "%s | Bravest Challengers! (Hell Mode Attempted)\n", player->strName);
+		printf(GREEN "★ ACHIEVEMENT: Bravest challengers! ★\n" RESET);
+	}
+}
+
+/// EXTRA: Prints the achievements in one go
+void printAchievements(playerData *player, char mode*){
+	FILE *fAchievements = fopen("achievements.txt", "r");
+	char Achievements[LENGTH];
+	char playerName[LEGNTH];
+	int i;
+	int count = 0;
+	
+	/*
+	FILE *fHighScores = NULL;
+	playerData scores[100]; // an array of data for 100 scorers
+	int count = 0; 
+	int i;
+	
+    fHighScores = fopen("scores.txt", "r");
+    if (fHighScores != NULL) {
+        while (count < 100 && fscanf(fHighScores, " %[^\n]", scores[count].strName) == 1 && fscanf(fHighScores, "%f", &scores[count].nScore) == 1 && fscanf(fHighScores, "%d", &scores[count].nAnswered) == 1) {
+        count++;
+        fscanf(fHighScores, "%*[\n]");  // Reads empty newlines but skips them
+        }
+        fclose(fHighScores);
+    }
+	
+	sortHighScores(scores, &count);
+	
+	printf("HIGH SCORES:\n");
+	printf("PLAYER   |   CORRECT ANSWERS   |   HIGH SCORE\n");
+	for(i = 0; i < count; i++){
+		printf("%s   %d   %.1f\n", scores[i].strName, scores[i].nAnswered, scores[i].nScore);
+	}
+	
+	if(count == 0){
+		printf("No scores added yet~\n");
+	}
+	*/
+	
+	if(fAchievements != NULL){
+		while(count < 101 && fscanf(fAchievements, "%[^|] %[^\n]", playerName, Achievements) == 1){
+			count++;
+		}
+		fclose(fAchievements);
+	}
+	
+	printf("ACHIEVEMENTS!\n");
+	printf("Congratulations to the following players for achieving the following:\n");
+	for(i = 0; i < count; i++){
+		printf("%s | %s", playerName, Achievements);
+	}
+	
+	if(count == 0){
+		printf("Nothing achievemed yet... :(");
+	}
+}
+
+/*
+/// EXTRA: Hard mode!
+void playTimeHard(){}
+
+*/
+
+/*
+/// EXTRA: Hard mode save!
+void hardModeSave(){}
+
+*/
+
+
+
+
+/* adminMenu accesses the interface for the admin menu, wherein users can access the game data through the wordlist database
+	@param player - the struct that accesses player data (information about the player and their played/saved games)
+	@param wordlist - the struct that accesses game data (details for the word)
+	@param entryCount - the number of entries in wordlist
+*/
 void adminMenu(gameData wordlist[], int* entryCount) {
 	int nChoice;
 	char passwordvalid[50];
@@ -832,10 +960,54 @@ void adminMenu(gameData wordlist[], int* entryCount) {
 					break;
 				default: printf("Invalid choice. Try again.\n");
 			}
-		} while (nChoice != 6);
+		} while (nChoice != 7);
 	} else {
 		printf("Wrong password. Try again!\n");
 	}
+}
+
+/* playMenu accesses the interface wherein users can select between a normal mode and a hard mode.
+	@param player - the struct that accesses player data (information about the player and their played/saved games)
+	@param wordlist - the struct that accesses game data (details for the word)
+	@param entryCount - the number of entries in wordlist
+*/
+void playMenu(gameData wordlist[], int* entryCount) {
+	int nChoice;
+	int loaded = 0;
+	playerData player;
+
+	do {
+		printf("+--------------------------------------------+\n");
+		printf("|~~~  Welcome to GAMEMODES     ~~~|\n");
+		printf(CYAN "|~~~  NORMAL - Follows the specs, usual gameplay, 3 lives, exit any time     ~~~|\n" RESET);
+		printf(RED"|~~~  HELL MODE - 10 second timer to think of a word, lose a life every time the timer runs out, no exits!     ~~~|\n"RESET);
+
+		printf("+--------------------------------------------+\n\n\n");
+		
+		printf("+--------------------------------------------+\n");
+		printf("|~~~  Welcome to GUESSING WORD GAME     ~~~|\n");
+		printf("|            SELECT YOUR GAMEMODE                  |\n");
+		printf("|" CYAN    "[1] NORMAL" RESET "                        |\n");
+		printf("|" RED "[2] HELL MODE" RESET "                          |\n");
+		printf("|" GREEN  "[3] EXIT" RESET "                    |\n");
+		printf("+--------------------------------------------+\n\n\n");
+
+		printf("Enter choice: ");
+		scanf("%d", &nChoice);
+
+		switch(nChoice){
+			case 1: 
+				playTime(&player, wordlist, entryCount);				
+				break;
+			case 2: 
+				hellMode(&player, wordlist, entryCount);
+				break;
+			case 3: 
+				quitGame();
+				break;
+			default: printf("Invalid choice. Try again.\n");
+		}
+	} while (nChoice != 3);
 }
 
 // main game menu
@@ -848,39 +1020,48 @@ void mainMenu(gameData wordlist[], int* entryCount) {
 		printf("+--------------------------------------------+\n");
 		printf("|~~~  Welcome to GUESSING WORD GAME     ~~~|\n");
 		printf("|                  Options:                  |\n");
-		printf("|" RED    "[1] ADMIN" RESET "                        |\n");
-		printf("|" YELLOW "[2] PLAY" RESET "                          |\n");
-		printf("|" GREEN  "[3] HIGH SCORE" RESET "                    |\n");
-		printf("|" BLUE   "[4] SAVED GAMES" RESET "                   |\n");
-		printf("|" MAGENTA "[5] EXIT" RESET "                          |\n");
+		printf("|"     "[1] HELP" "                        |\n");
+		printf("|" RED    "[2] ADMIN" RESET "                        |\n");
+		printf("|" YELLOW "[3] PLAY" RESET "                          |\n");
+		printf("|" GREEN  "[4] HIGH SCORES" RESET "                    |\n");
+		printf("|" BLUE   "[5] SAVED GAMES" RESET "                   |\n");
+		printf("|" CYAN   "[6] ACHIEVEMENTS" RESET "                   |\n");
+		printf("|" MAGENTA "[7] EXIT" RESET "                          |\n");
 		printf("+--------------------------------------------+\n\n\n");
 
 		printf("Enter choice: ");
 		scanf("%d", &nChoice);
 
 		switch(nChoice){
-			case 1: 
+			case 1:
+				helpMenu();
+				break;
+			case 2;
 				adminMenu(wordlist, entryCount);
 				break;
-			case 2: 
-				playTime(&player, wordlist, entryCount);
-				break;
 			case 3: 
-				displayHighScores();
+				playMenu(wordlist, entryCount);
 				break;
 			case 4: 
+				displayHighScores();
+				break;
+			case 5: 
 				loadSave(&player, wordlist, entryCount, &loaded);
 				if(loaded){
 					playTime(&player, wordlist, entryCount);
 				}
 				break;
-			case 5:
+			case 6:
+				displayAchievements();
+				break;
+			case 7:
 				quitGame();
 				break;
 			default: printf("Invalid choice. Try again.\n");
 		}
-	} while (nChoice != 5);
+	} while (nChoice != 7);
 }
+
 
 // main
 int main() {
