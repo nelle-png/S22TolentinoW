@@ -754,8 +754,8 @@ void playTime(playerData *player, gameData wordlist[], int* entryCount, int load
 				
                 // Display game info
                 printf(YELLOW "\nLEVEL %d\n" RESET, player->nLevel);
+				printf(CYAN "JUMBLED WORD: %s\n" RESET, shuffled);
                 printf(BLUE "CLUE: %s\n" RESET, wordlist[currentWord].strClue); 
-                printf(CYAN "JUMBLED WORD: %s\n" RESET, shuffled);
 
                 // Get player's guess
                 printf(MAGENTA "Enter your guess: " RESET);
