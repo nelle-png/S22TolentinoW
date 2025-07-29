@@ -1185,23 +1185,20 @@ void limboModeDisplay(){
 /* 
 	creditsMenu will print credits 
 */
-
-void creditsMenu(){
-	printf("+---------------------------------------------------------------+\n");
-	printf("|           " YELLOW "Welcome to my guessing word game!" RESET "            |\n");
-	printf("|                                                               |\n");
-	printf("| This was formulated by " RED "Winelle R. Tolentino" RESET " from " CYAN "Section S22" RESET " |\n");
-	printf("| of " GREEN "Ms. Jackylyn Beredo's CCPROG2 class!" RESET "                       |\n");
-	printf("|                                                               |\n");
-	printf("| This project was completed in a span of " BLUE "3 weeks" RESET "             |\n");
-	printf("| (not including the several bonus features added)!             |\n");
-	printf("|                                                               |\n");
-	// printf("| Special thanks to my playtesters " MAGENTA "(name here)" RESET "              |\n"); /// i dont have any yet
-	printf("| Check out my cool " RED "LIMBO MODE (Infinite)" RESET " — limitless fun!     |\n");
-	printf("|                                                               |\n");
-	printf("|       " YELLOW "Thank you for playing this game! I hope you have fun <3" RESET "     |\n");
-	printf("+---------------------------------------------------------------+\n\n");
-
+void creditsMenu() {
+    printf("+-----------------------------------------------------------------+\n");
+	printf("|               " YELLOW "Welcome to my guessing word game!" RESET "                 |\n");
+	printf("|                                                                 |\n");
+	printf("| This was formulated by " RED "Winelle R. Tolentino" RESET " from " CYAN "Section S22" RESET "    |\n");
+	printf("|            of " GREEN "Ms. Jackylyn Beredo's CCPROG2 class!" RESET "              |\n");
+	printf("|                                                                 |\n");
+	printf("|        This project was completed in a span of " BLUE "3 weeks" RESET "          |\n");
+	printf("|       (not including the several bonus features added)!         |\n");
+	printf("|                                                                 |\n");
+	printf("|    Check out my cool " RED "LIMBO MODE (Infinite)" RESET " - limitless fun!     |\n");
+	printf("|                                                                 |\n");
+	printf("|  " YELLOW "Thank you for playing this game! I hope you have fun <3" RESET "        |\n");
+	printf("+-----------------------------------------------------------------+\n\n");
 }
 
 /* adminMenu accesses the interface for the admin menu, wherein users can access the different admin options
