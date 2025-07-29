@@ -38,6 +38,11 @@ EXTRA RESOURCES:
 FUNCTION PROTOTYPES:
 
 int isDuplicate(gameData wordlist[], int n, char word[]) 
+int wordValidator(char* word1, char* word2)
+void saveWordlist(gameData wordlist[], int entryCount)
+int gameCheck(playerData *player)
+char randomLetter(char *word)
+void viewWords(gameData wordlist[], int* entryCount)
 void addWordsManual(gameData wordlist[], int* entryCount) 
 void addFromFile(gameData wordlist[], int* entryCount)
 void editWords(gameData wordlist[], int* entryCount)
@@ -47,10 +52,27 @@ char randomLetter(char *word)
 void saveGame(playerData *player)
 void playTime(playerData *player, gameData wordlist[], int* entryCount) 
 void sortHighScores(playerData player[], int* entryCount)
+void resetHighScore()
+void resetHighScore()
 void displayHighScores(playerData player[], int* entryCount)
 void quitGame() 
 void adminMenu(gameData wordlist[], int* entryCount) 
 void mainMenu(gameData wordlist[], int* entryCount) 
+void resetSavedGames()
+int loadSave(playerData *player, gameData wordlist[], int* entryCount) 
+void quitGame()
+
+BONUS FEATURES:
+void saveAchievements(playerData *player, char *mode)
+void jumbledWord(gameData wordlist[], int entryCount, char *jumbledWord, char *originalWord)
+void limboTimer(int seconds)
+void displayAchievements() 
+void limboMode(playerData *player, gameData wordlist[], int* entryCount)
+void limboModeSave(playerData *player, gameData wordlist[], int* entryCount)
+void limboModeDisplay()
+void creditsMenu()
+void adminMenu(gameData wordlist[], int* entryCount)
+void mainMenu(gameData wordlist[], int* entryCount)
 
 
 ***/
@@ -334,6 +356,8 @@ void addWordsManual(gameData wordlist[], int* entryCount) {
 /* addFromFile allows the user to add words from file
 	@param wordlist - the struct that accesses game data (details for the word)
 	@param entryCount - the number of entries in wordlist
+	
+	pre-condition: this function already adds a ".txt" suffix to the inputted filename, which makes the function take in any name
 */
 void addFromFile(gameData wordlist[], int* entryCount) {
     FILE *fAdd = NULL; 
@@ -347,10 +371,7 @@ void addFromFile(gameData wordlist[], int* entryCount) {
     
     printf("Enter a file to import: ");
     scanf(" %[^\n]", filename);
-    // Only add .txt if not already present
-    if (strstr(filename, ".txt") == NULL) {
-        strcat(filename, ".txt");
-    }
+    strcat(filename, ".txt");
     
     fAdd = fopen(filename, "r");
     
@@ -390,7 +411,7 @@ void addFromFile(gameData wordlist[], int* entryCount) {
     
     if(fAdd != NULL) {
         if(nAdded > 0) {
-            printf(GREEN"Added %d new words from file %s!\n"RESET, nAdded, filename);
+            printf(GREEN"Added %d new word/s from file %s!\n"RESET, nAdded, filename);
         } else if(*entryCount >= 200) {
             printf(YELLOW"Word list full (max 200 words)\n"RESET);
         } else {
@@ -436,7 +457,7 @@ void editWords(gameData wordlist[], int* entryCount){
 	if(*entryCount > 0)
 	{
 	
-		printf(MAGENTA"INDEX" RESET "-" CYAN "WORD" RESET "-" YELLOW "CLUE\n" RESET);
+		printf(MAGENTA"INDEX" RESET " - " CYAN " WORD " RESET " - " YELLOW "CLUE\n" RESET);
 		
 		for(i = 0; i < *entryCount; i++){
 			printf(MAGENTA "%d" RESET  " - " CYAN "%s" RESET " - " YELLOW"%s\n"RESET, i+1, wordlist[i].strWord, wordlist[i].strClue);
@@ -445,7 +466,7 @@ void editWords(gameData wordlist[], int* entryCount){
 		
 		validInput = 0;
 		while(!validInput){
-			printf("Do you wish to edit a" CYAN " WORD [0]" RESET " or a" BLUE "CLUE [1] " RESET "?\n");
+			printf("Do you wish to edit a" CYAN " WORD [0]" RESET " or a " BLUE "CLUE [1] " RESET "?\n");
 			scanf("%d", &editSelect);
 			
 			if(editSelect == 1 || editSelect == 0){
@@ -475,7 +496,14 @@ void editWords(gameData wordlist[], int* entryCount){
 			printf("New word: ");
 			scanf(" %[^\n]", newWord);
 			if(newWord[0]){
-				strcpy(wordlist[editIndex].strWord, newWord);
+				if(isDuplicate(wordlist, *entryCount, newWord) && 
+				   strcmp(newWord, wordlist[editIndex].strWord) != 0) {
+					printf(RED"Error: Word '%s' already exists in the word list!\n"RESET, newWord);
+				} else {
+					strcpy(wordlist[editIndex].strWord, newWord);
+					printf(GREEN"Word updated successfully!\n"RESET);
+					printf(GREEN "Updated entry %d: %s - %s\n" RESET, editIndex+1, wordlist[editIndex].strWord, wordlist[editIndex].strClue);
+				}
 			}
 		} else if(editSelect == 1){
 			printf(BLUE"Selected clue: %s\n"RESET, wordlist[editIndex].strClue);
@@ -488,8 +516,6 @@ void editWords(gameData wordlist[], int* entryCount){
 		} else {
 			printf(RED"Invalid entry. Please enter either 0 for WORDS and 1 for CLUES"RESET);
 		}
-		printf("Updated entry %d: %s - %s\n", editIndex+1, 
-		wordlist[editIndex].strWord, wordlist[editIndex].strClue);
 	} else {
 		printf("No available entries for editing :(\n");
 	}
@@ -1183,7 +1209,7 @@ void limboModeDisplay(){
 /// MENU FUNCTIONS ///
 
 /* 
-	creditsMenu will print credits 
+	BONUS: creditsMenu will print credits 
 */
 void creditsMenu() {
     printf("+-----------------------------------------------------------------+\n");
