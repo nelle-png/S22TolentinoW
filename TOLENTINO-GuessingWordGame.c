@@ -11,6 +11,7 @@ EXTRA RESOURCES:
 - https://stackoverflow.com/questions/34874347/what-does-an-asterisk-in-a-scanf-format-specifier-mean [scanf with *, reading a character but not assigning it to a variable]
 - https://www.youtube.com/watch?v=dG1HBSArgjM [Countdown Timer | C Programming Example by Portfolio Courses]
 - https://www.reddit.com/r/C_Programming/comments/jogazf/what_the_hell_is_nc/ [Some "%^\n" explanations (initially learned from prof inquiry)]
+- https://www.programiz.com/cpp-programming/library-function/cstdio/fflush [fflush to clear buffers (used in bonus timer)]
 -  CCPROG 2 Course Notes
 
 *********************************************************************************************************/
@@ -229,27 +230,27 @@ void saveAchievements(playerData *player, char *mode) {
     
 	if(fAchievements != NULL){
 		if(player->nScore >= 100) {
-        fprintf(fAchievements, "  %s | Word Master - Get a score of 100!\n", player->strName);
+        fprintf(fAchievements, "%s\nWord Master - Get a score of 100!\n\n", player->strName);
         printf(MAGENTA "@ ACHIEVEMENT: Word Master! \n" RESET);
 		} else if(player->nScore >= 80) {
-			fprintf(fAchievements, "  %s | Word Proficient - Get a score of 80!\n", player->strName);
+			fprintf(fAchievements, "%s\nWord Proficient - Get a score of 80!\n\n", player->strName);
 			printf(CYAN "@ ACHIEVEMENT: Word Proficient! \n" RESET);
 		} else if(player->nScore >= 50) {
-			fprintf(fAchievements, "  %s | Word Competent - Get a score of 50!\n", player->strName);
+			fprintf(fAchievements, "%s\nWord Competent - Get a score of 50!\n\n", player->strName);
 			printf(CYAN "@ ACHIEVEMENT: Word Competent! \n" RESET);
 		} else if(player->nScore >= 25) {
-			fprintf(fAchievements, "  %s | Word Beginner - Get a score of 25!\n", player->strName);
+			fprintf(fAchievements, "%s\nWord Beginner - Get a score of 25!\n\n", player->strName);
 			printf(CYAN "@ ACHIEVEMENT: Word Beginner! \n" RESET);
 		} else if (player->nScore >= 10) {
-			fprintf(fAchievements, "  %s | Word Rookie - Get a score of 10!\n", player->strName);
+			fprintf(fAchievements, "%s\nWord Rookie - Get a score of 10!\n\n", player->strName);
 			printf(CYAN "@ ACHIEVEMENT: Word Rookie! \n" RESET);
 		}
 		
 		if(strcmp(mode, "NORMAL") == 0) {
-			fprintf(fAchievements, "%s | Normal Mode Novice - Normal Mode Attempted\n", player->strName);
+			fprintf(fAchievements, "%s \n Normal Mode Novice - Normal Mode Attempted\n\n", player->strName);
 			printf(GREEN "$ ACHIEVEMENT: Normal Mode Novice! \n" RESET);
 		} else if(strcmp(mode, "HARD") == 0) {
-			fprintf(fAchievements, "%s | Infinite void - Limbo Mode Attempted\n", player->strName);
+			fprintf(fAchievements, "%s \n Infinite void - Limbo Mode Attempted\n\n", player->strName);
 			printf(GREEN "$ ACHIEVEMENT: Infinite void! \n" RESET);
 		}
 		
@@ -334,40 +335,70 @@ void addWordsManual(gameData wordlist[], int* entryCount) {
 	@param wordlist - the struct that accesses game data (details for the word)
 	@param entryCount - the number of entries in wordlist
 */
-void addFromFile(gameData wordlist[], int* entryCount){
-	FILE *fAdd = NULL; 
-	char filename[50];
-	char word[LENGTH]; // keeps words from inputted file
-	char clue[LENGTH]; // keeps clues from inputted file
-	int openedFile = 0;
-	int nAdded = *entryCount;
-	int nUsed = 0; // 1 if used, 0 if not yet
-	
-	printf("Enter a file to import: ");
-	scanf(" %[^\n]", filename);
-	strcat(filename, ".txt"); // adds a .txt to ensure that the program is processing a text file even if user inputs a non-textfile format
-	
-	fAdd = fopen(filename, "r");
-	openedFile = (fAdd != NULL);
-	
-	if(openedFile){
-		while(*entryCount < 200 && fscanf(fAdd, " %[^\n]", word) == 1 && fscanf(fAdd, " %d", &nUsed) == 1 && fscanf(fAdd, " %[^\n]", clue) == 1){
-			if(!isDuplicate(wordlist, *entryCount, word)){
-				strcpy(wordlist[*entryCount].strWord, word);
-				strcpy(wordlist[*entryCount].strClue, clue);
-				wordlist[*entryCount].wordUsed = nUsed;
-				(*entryCount)++;
-				nAdded++;
-			}
-			fscanf(fAdd, "%*[\n]"); // Skip empty lines
-		}
-		fclose(fAdd);
-	}
-	if(openedFile){
-		printf(YELLOW"Added %d new words from file %s\n"RESET, nAdded, filename);
-	} else {
-		printf(RED"ERROR!\n"RESET);
-	}
+void addFromFile(gameData wordlist[], int* entryCount) {
+    FILE *fAdd = NULL; 
+    char filename[50];
+    char word[LENGTH];
+    char clue[LENGTH];
+    int nAdded = 0;
+    int nUsed = 0;
+    int entryFlag;
+    int breakout = 1;
+    
+    printf("Enter a file to import: ");
+    scanf(" %[^\n]", filename);
+    // Only add .txt if not already present
+    if (strstr(filename, ".txt") == NULL) {
+        strcat(filename, ".txt");
+    }
+    
+    fAdd = fopen(filename, "r");
+    
+    if(fAdd != NULL) {
+        // Continue reading until array is full (200 possible word entries)or EOF reached
+        while(*entryCount < 200 && breakout == 1) {
+            // Try to read a complete entry (word + flag + clue)
+            entryFlag = fscanf(fAdd, " %[^\n]", word);
+            entryFlag += fscanf(fAdd, "%d", &nUsed);
+            entryFlag += fscanf(fAdd, " %[^\n]", clue);
+            
+            // if program couldn't scan for the word/used flag/clue, mark entries as incomplete
+            if(entryFlag != 3) {
+                if(entryFlag > 0) {  
+                    printf(RED"Warning: Incomplete entry in file\n"RESET);
+                }
+                // exit this loop if entries are marked incomplete
+                breakout = 0;
+            } else {
+                // skip empty lines between entries
+                fscanf(fAdd, "%*[\n]");
+                
+                // check for duplicates (only if word is not empty)
+                if(word[0] != '\0' && !isDuplicate(wordlist, *entryCount, word)) {
+                    strcpy(wordlist[*entryCount].strWord, word);
+                    strcpy(wordlist[*entryCount].strClue, clue);
+                    wordlist[*entryCount].wordUsed = nUsed;
+                    (*entryCount)++;
+                    nAdded++;
+                } else if(word[0] != '\0') {
+                    printf(YELLOW"Duplicate skipped: %s\n"RESET, word); // if duplicates are detected, they're automatically skipped. An error message is displayed whenevre they are.
+                }
+            }
+        }
+        fclose(fAdd);
+    }
+    
+    if(fAdd != NULL) {
+        if(nAdded > 0) {
+            printf(GREEN"Added %d new words from file %s!\n"RESET, nAdded, filename);
+        } else if(*entryCount >= 200) {
+            printf(YELLOW"Word list full (max 200 words)\n"RESET);
+        } else {
+            printf(YELLOW"No new words added (file empty or all duplicates)\n"RESET);
+        }
+    } else {
+        printf(RED"Error: Could not open %s\n"RESET, filename);
+    }
 }
 
 /* showWords displays all words in struct wordlist[]
@@ -382,7 +413,7 @@ void viewWords(gameData wordlist[], int* entryCount){
 		printf(MAGENTA"INDEX " RESET " - " CYAN " WORD " RESET " - " YELLOW " CLUE\n" RESET);
 		
 		for(i = 0; i < *entryCount; i++){
-			printf(MAGENTA"%d " RESET  " - " CYAN " %s " RESET " - " YELLOW " %s\n "RESET, i+1, wordlist[i].strWord, wordlist[i].strClue);
+			printf(MAGENTA"%d " RESET  " - " CYAN " %s " RESET " - " YELLOW " %s\n"RESET, i+1, wordlist[i].strWord, wordlist[i].strClue);
 		}
 		printf("\n");
 	} else {
@@ -941,7 +972,7 @@ void limboTimer(int seconds){
 	clock_t stop; // clock ticks we can expect for a second
 	
 	while(seconds > 0){
-		printf(CYAN "\r%02d" RESET, seconds);
+		printf("\rGet ready in..." CYAN " %02d" RESET, seconds);		
 		fflush(stdout);
 		stop = clock() + CLOCKS_PER_SEC;
 		// will stop running once clock returns a number greater than stop
@@ -957,50 +988,55 @@ void limboTimer(int seconds){
 */
 void displayAchievements() {
     FILE *fAchievements = fopen("achievements.txt", "r");
-    char achievement[256]; 
+    char player[50];
+    char achievement[200];
+    int count = 0;
     
-    
-   printf("\n+-------------------------------------------------------------+\n");
-	printf("|" YELLOW "                        ACHIEVEMENTS!                        " RESET "|\n");
-	printf("|-------------------------------------------------------------|\n");
-	printf("|" CYAN "           Congratulations to these players:                 " RESET "|\n\n");
+    printf(WHITE "\n+-------------------------------------------------------------+\n" RESET);
+    printf(WHITE "|" YELLOW "                        ACHIEVEMENTS!                        " WHITE "|\n" RESET);
+    printf(WHITE "|-------------------------------------------------------------|\n" RESET);
+    printf(WHITE "|" CYAN "           Congratulations to these players:                 " WHITE "|\n" RESET);
+    printf(WHITE "|                                                             |\n" RESET);
 
-
-    
-	// scanning an entire line
     if(fAchievements != NULL) {
-        while(fgets(achievement, sizeof(achievement), fAchievements)) {
-            printf(YELLOW"  %s"RESET, achievement);
+        while(count < 100 && fscanf(fAchievements, " %49[^\n]", player) == 1 && 
+              fscanf(fAchievements, " %99[^\n]", achievement) == 1) {
+            printf(WHITE "| " MAGENTA "%-14s " WHITE "| " YELLOW "%-38s " WHITE "|\n" RESET, 
+                   player, achievement);
+            count++;
+            fscanf(fAchievements, "%*[\n]");
+            fscanf(fAchievements, "%*[\n]");
         }
         fclose(fAchievements);
-		printf("\n+-------------------------------------------------------------+\n");
-    } 
-    else {
-        printf("|   " RED "No achievements yet... :(" RESET "                                |\n");
-		printf("\n+-------------------------------------------------------------+\n");
-
+        
+        if(count == 0) {
+            printf(WHITE "|   " RED "No achievements yet... :(" RESET "                                " WHITE "|\n" RESET);
+        }
+    } else {
+        printf(WHITE "|   " RED "No achievements yet... :(" RESET "                                " WHITE "|\n" RESET);
     }
+    
+    printf(WHITE "+-------------------------------------------------------------+\n\n" RESET);
 }
 
-/* BONUS: limboMode serves as a BONUS feature. It works similar to the playtime function, but does not give the option to save game results early. All words, regardless of used flag, are used/reused and shuffled. After all, this is meant to mimic limbo.
+/* BONUS: limboMode serves as a BONUS feature. It works similar to the playtime function, but does not give the option to save game results early. All words, regardless of used flag, are used/reused and shuffled. A 3 second timer is given to the player before each round. After all, this is meant to mimic limbo.
 	@param player - the struct that accesses player data (information about the player and their played/saved games)
 	@param wordlist - the struct that accesses game data (details for the word)
 	@param entryCount - the number of entries in wordlist
 	
-	pre-condition: There are no options to save the game early or continue pre-existing games. All words in the wordlist are also used and shuffled, disregarding the used flag.
+	pre-condition: There are no options to save the game early or continue pre-existing games. A timer runs before each round. All words in the wordlist are also used and shuffled, disregarding the used flag.
 */
 void limboMode(playerData *player, gameData wordlist[], int* entryCount) {
-    /* Variable Declarations */
     FILE *flimboSave = NULL;
     FILE *fData = NULL;
     float points = 0;
-	int seconds = 3;
+	int seconds;
     char strAnswer[LENGTH];
     char limboWord[LENGTH];
 	char originalWord[LENGTH]; 
 
-    printf("Welcome to" RED "LIMBO" RESET", challenger >:D\n");
-    printf(BLUE"Enter your name... if you dare!: "RESET);
+    printf(CYAN"Welcome to" RESET RED " LIMBO" RESET"," CYAN"challenger >:D\n"RESET);
+    printf(CYAN"Enter your name... if you dare: "RESET);
     scanf(" %[^\n]", player->strName);
     
     // Initialize player stats
@@ -1023,8 +1059,6 @@ void limboMode(playerData *player, gameData wordlist[], int* entryCount) {
         fclose(fData);
     }
 	
-	printf("Get ready in... ");
-	limboTimer(seconds);
     
     if (*entryCount > 0) {
         while (player->nLives > 0) {
@@ -1032,11 +1066,16 @@ void limboMode(playerData *player, gameData wordlist[], int* entryCount) {
             // Set points by level
             if (player->nLevel <= 5) { 
                 points = 2.0;
+				seconds = 3;
             } else if (player->nLevel <= 10) {
                 points = 5.0;
+				seconds = 2;
             } else { 
+				seconds = 1;
                 points = 7.5;
             }
+			
+			limboTimer(seconds); // gives a 3 second timer to get ready before each round
 			
             // Display level info
             printf(YELLOW"\nLEVEL %d\n"RESET, player->nLevel);
@@ -1054,9 +1093,10 @@ void limboMode(playerData *player, gameData wordlist[], int* entryCount) {
                 printf(RED "\nYou messed up >:)\n" RESET);
                 printf("Correct word was: %s\n", originalWord); 
                 player->nLives--;
+				seconds--;
             }
             
-            printf(MAGENTA"Score: %.1f" RESET " | " RED "Lives: %d\n" RESET, player->nScore, player->nLives);
+            printf(MAGENTA"Score: %.1f" RESET " | " RED "Lives: %d\n\n" RESET, player->nScore, player->nLives);
         }
 
         // Game over message
