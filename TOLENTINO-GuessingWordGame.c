@@ -1156,7 +1156,7 @@ void creditsMenu(){
 	printf("| This project was completed in a span of " BLUE "3 weeks" RESET "             |\n");
 	printf("| (not including the several bonus features added)!             |\n");
 	printf("|                                                               |\n");
-	printf("| Special thanks to my playtesters " MAGENTA "(name here)" RESET "              |\n");
+	// printf("| Special thanks to my playtesters " MAGENTA "(name here)" RESET "              |\n"); /// i dont have any yet
 	printf("| Check out my cool " RED "LIMBO MODE (Infinite)" RESET " — limitless fun!     |\n");
 	printf("|                                                               |\n");
 	printf("|       " YELLOW "Thank you for playing this game! I hope you have fun <3" RESET "     |\n");
